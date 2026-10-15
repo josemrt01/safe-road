@@ -8,6 +8,9 @@ COUNTRY_CODE = "US"
 # Seconds to wait for an outside API before giving up; used by the API clients.
 HTTP_TIMEOUT_SECONDS = 10
 
+# Number of route options the app offers; used by graphhopper_client and trip_plan_service.
+ROUTE_COUNT = 3
+
 # Vehicle type GraphHopper routes for; used by graphhopper_client.
 ROUTING_PROFILE = "car"
 
