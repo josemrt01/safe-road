@@ -11,6 +11,10 @@ HTTP_TIMEOUT_SECONDS = 10
 # Number of route options the app offers; used by graphhopper_client and trip_plan_service.
 ROUTE_COUNT = 3
 
+# Most weather points one heatmap may ask for (Open-Meteo free-plan friendly);
+# used by corridor_builder and the heatmap request validation.
+MAX_CORRIDOR_POINTS = 250
+
 # Names shown for the routes, fastest first; used by trip_plan_service.
 ROUTE_LABELS = ("A", "B", "C")
 
