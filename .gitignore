@@ -14,6 +14,7 @@ frontend/dist/
 # macOS
 .DS_Store
 
-# Local notes and assistant instructions (not part of the repository)
-docs/
+# Local notes and assistant instructions (not part of the repository); README screenshots in docs/images are kept
+docs/*
+!docs/images/
 CLAUDE.md
