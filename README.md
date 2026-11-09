@@ -11,7 +11,7 @@ how risky that is for the truck's load, and recommends the safest route with a o
 > ⏳ The demo runs on a free hosting plan that sleeps when nobody uses it. The first visit can take about a
 > minute to load; after that it runs at normal speed.
 
-![Three routes from Dallas to Topeka colored by weather risk, with the recommended route first](docs/images/route_options.jpg)
+![Three routes from Denver to Salt Lake City colored by weather risk, with the recommended route first](docs/images/route_options.jpg)
 
 ## 🧭 How to use it
 
