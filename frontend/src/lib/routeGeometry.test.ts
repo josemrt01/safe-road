@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { RiskCause, RiskLevel } from '../types/risk'
+import { RiskLevel } from '../types/risk'
+import { makeCheckpoint } from '../test/makeCheckpoint'
 import { makeRoutePlan } from '../test/makeRoutePlan'
 import type { Checkpoint, LonLat } from '../types/tripPlan'
 import { TruckStatus } from '../types/truck'
@@ -7,31 +8,19 @@ import {
   buildCheckpointPoints,
   buildOtherRouteLines,
   buildRouteSegments,
+  getSegmentIndexAtTime,
   getTruckPosition,
   getWorseCheckpoint,
 } from './routeGeometry'
 
-// Builds a checkpoint for the tests; position, previous_point_index and level matter, the weather is calm.
-function makeCheckpoint(
+// A checkpoint on the test route; position, previous_point_index and level matter, the weather is calm.
+function makePlacedCheckpoint(
   lon: number,
   lat: number,
   previousPointIndex: number,
   level: RiskLevel = RiskLevel.LOW,
 ): Checkpoint {
-  return {
-    mile: 0,
-    lon,
-    lat,
-    eta_utc: '2026-10-13T13:00:00Z',
-    previous_point_index: previousPointIndex,
-    forecast_hour_utc: '2026-10-13T13:00:00Z',
-    wind_gust_mph: 0,
-    wind_speed_mph: 0,
-    rain_in_hr: 0,
-    snow_in_hr: 0,
-    level,
-    cause: RiskCause.NONE,
-  }
+  return makeCheckpoint({ lon, lat, previous_point_index: previousPointIndex, level })
 }
 
 describe('buildRouteSegments', () => {
@@ -43,8 +32,8 @@ describe('buildRouteSegments', () => {
     [30, 0],
   ]
 
-  it('makes one stretch per pair of neighboring checkpoints', () => {
-    const checkpoints = [makeCheckpoint(0, 0, 0), makeCheckpoint(15, 0, 1), makeCheckpoint(30, 0, 2)]
+  it('makes one segment per pair of neighboring checkpoints', () => {
+    const checkpoints = [makePlacedCheckpoint(0, 0, 0), makePlacedCheckpoint(15, 0, 1), makePlacedCheckpoint(30, 0, 2)]
 
     const segments = buildRouteSegments(straightRoute, checkpoints)
 
@@ -53,7 +42,7 @@ describe('buildRouteSegments', () => {
 
   it('includes the route points between two checkpoints', () => {
     // The start lies after point 0 (between points 0 and 1), the end after point 2 (between points 2 and 3).
-    const checkpoints = [makeCheckpoint(5, 0, 0), makeCheckpoint(25, 0, 2)]
+    const checkpoints = [makePlacedCheckpoint(5, 0, 0), makePlacedCheckpoint(25, 0, 2)]
 
     const segments = buildRouteSegments(straightRoute, checkpoints)
 
@@ -66,7 +55,7 @@ describe('buildRouteSegments', () => {
   })
 
   it('is a straight piece when both checkpoints lie between the same two route points', () => {
-    const checkpoints = [makeCheckpoint(12, 0, 1), makeCheckpoint(18, 0, 1)]
+    const checkpoints = [makePlacedCheckpoint(12, 0, 1), makePlacedCheckpoint(18, 0, 1)]
 
     const segments = buildRouteSegments(straightRoute, checkpoints)
 
@@ -78,12 +67,12 @@ describe('buildRouteSegments', () => {
 })
 
 describe('buildRouteSegments risk level', () => {
-  it('colors a stretch by the worse of its two ends', () => {
+  it('colors a segment by the worse of its two ends', () => {
     const route: LonLat[] = [
       [0, 0],
       [10, 0],
     ]
-    const checkpoints = [makeCheckpoint(0, 0, 0, RiskLevel.LOW), makeCheckpoint(10, 0, 0, RiskLevel.SEVERE)]
+    const checkpoints = [makePlacedCheckpoint(0, 0, 0, RiskLevel.LOW), makePlacedCheckpoint(10, 0, 0, RiskLevel.SEVERE)]
 
     const segments = buildRouteSegments(route, checkpoints)
 
@@ -93,15 +82,15 @@ describe('buildRouteSegments risk level', () => {
 
 describe('getWorseCheckpoint', () => {
   it('returns the end when it is worse', () => {
-    const start = makeCheckpoint(0, 0, 0, RiskLevel.MODERATE)
-    const end = makeCheckpoint(10, 0, 0, RiskLevel.HIGH)
+    const start = makePlacedCheckpoint(0, 0, 0, RiskLevel.MODERATE)
+    const end = makePlacedCheckpoint(10, 0, 0, RiskLevel.HIGH)
 
     expect(getWorseCheckpoint(start, end)).toBe(end)
   })
 
   it('returns the start on a tie', () => {
-    const start = makeCheckpoint(0, 0, 0, RiskLevel.HIGH)
-    const end = makeCheckpoint(10, 0, 0, RiskLevel.HIGH)
+    const start = makePlacedCheckpoint(0, 0, 0, RiskLevel.HIGH)
+    const end = makePlacedCheckpoint(10, 0, 0, RiskLevel.HIGH)
 
     expect(getWorseCheckpoint(start, end)).toBe(start)
   })
@@ -109,7 +98,7 @@ describe('getWorseCheckpoint', () => {
 
 describe('buildCheckpointPoints', () => {
   it('makes one [lon, lat] point per checkpoint', () => {
-    const points = buildCheckpointPoints([makeCheckpoint(-96.8, 32.8, 0), makeCheckpoint(-95.4, 29.8, 3)])
+    const points = buildCheckpointPoints([makePlacedCheckpoint(-96.8, 32.8, 0), makePlacedCheckpoint(-95.4, 29.8, 3)])
 
     expect(points.features.map((feature) => feature.geometry.coordinates)).toEqual([
       [-96.8, 32.8],
@@ -166,7 +155,7 @@ describe('getTruckPosition', () => {
 
   // A checkpoint with a given place, mile and arrival time; previous_point_index places it on the route.
   function makeTimedCheckpoint(lon: number, lat: number, previousPointIndex: number, mile: number, etaUtc: string) {
-    return { ...makeCheckpoint(lon, lat, previousPointIndex), mile, eta_utc: etaUtc }
+    return { ...makePlacedCheckpoint(lon, lat, previousPointIndex), mile, eta_utc: etaUtc }
   }
 
   // Straight route (0,0) -> (1,0), driven from 13:00 to 14:00.
@@ -239,5 +228,31 @@ describe('getTruckPosition', () => {
     const position = getTruckPosition(route, new Date('2026-10-13T14:00:00Z'))
 
     expect(position.lonLat[0]).toBeCloseTo(1, 3)
+  })
+})
+
+describe('getSegmentIndexAtTime', () => {
+  // Three checkpoints driven at 13:00, 14:00 and 15:00, so two segments.
+  const checkpoints = [
+    makeCheckpoint({ eta_utc: '2026-10-13T13:00:00Z' }),
+    makeCheckpoint({ eta_utc: '2026-10-13T14:00:00Z' }),
+    makeCheckpoint({ eta_utc: '2026-10-13T15:00:00Z' }),
+  ]
+
+  it('is null before departure', () => {
+    expect(getSegmentIndexAtTime(checkpoints, new Date('2026-10-13T12:59:00Z'))).toBeNull()
+  })
+
+  it('finds the segment the time falls in', () => {
+    expect(getSegmentIndexAtTime(checkpoints, new Date('2026-10-13T13:00:00Z'))).toBe(0)
+    expect(getSegmentIndexAtTime(checkpoints, new Date('2026-10-13T14:30:00Z'))).toBe(1)
+  })
+
+  it('moves to the next segment at exactly a checkpoint time', () => {
+    expect(getSegmentIndexAtTime(checkpoints, new Date('2026-10-13T14:00:00Z'))).toBe(1)
+  })
+
+  it('is null from arrival on', () => {
+    expect(getSegmentIndexAtTime(checkpoints, new Date('2026-10-13T15:00:00Z'))).toBeNull()
   })
 })

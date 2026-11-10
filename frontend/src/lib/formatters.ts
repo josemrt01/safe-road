@@ -34,7 +34,7 @@ export function formatPrecipitationRate(inchesPerHour: number): string {
   return `${inchesPerHour.toFixed(2)} in/hr`
 }
 
-// Local day and time of a forecast hour, e.g. "Tue 2:00 PM"; the forecast card's main time.
+// Local day and time of a forecast hour, e.g. "Tue 2:00 PM"; the forecast band's clock.
 export function formatForecastTime(startHourUtc: string, hour: number): string {
   return formatEta(getForecastHourTime(startHourUtc, hour).toISOString())
 }
@@ -54,6 +54,14 @@ export function formatHourMark(startHourUtc: string, hour: number): string {
   if (hour === 0) return 'Now'
 
   return HOUR_MARK_FORMAT.format(getForecastHourTime(startHourUtc, hour))
+}
+
+// Digits typed in a box, with thousands separators, e.g. "45000" -> "45,000"; an empty box stays empty;
+// used by the truck weight input.
+export function formatDigitGroups(digits: string): string {
+  if (digits === '') return ''
+
+  return Number(digits).toLocaleString('en-US')
 }
 
 // Whole pounds with thousands separators, e.g. "45,000 lb".

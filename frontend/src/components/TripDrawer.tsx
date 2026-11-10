@@ -8,7 +8,7 @@ type TripDrawerProps = {
   stop: DrawerStop
   // Called after a drag or a tap on the handle; App stores the new stop.
   onStopChange: (stop: DrawerStop) => void
-  // Shown just above the drawer's top edge (the compact forecast card), so it moves with the drawer;
+  // Shown just above the drawer's top edge (the compact forecast band), so it moves with the drawer;
   // hidden at the full stop.
   aboveContent?: ReactNode
   children: ReactNode
@@ -37,7 +37,7 @@ export function TripDrawer({ stop, onStopChange, aboveContent, children }: TripD
                 --drawer-swipe-movement-y (the drag so far); the transform moves the drawer by both, and the bottom
                 padding keeps the scrolling list's end on screen. */}
             <Drawer.Popup
-              className="pointer-events-auto relative flex w-full flex-col rounded-t-3xl bg-panel text-base shadow-floating-panel outline-none touch-none [padding-bottom:max(0px,calc(var(--drawer-snap-point-offset)+var(--drawer-swipe-movement-y)))] [transform:translateY(calc(var(--drawer-snap-point-offset)+var(--drawer-swipe-movement-y)))] transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-swiping:select-none"
+              className="pointer-events-auto relative flex w-full flex-col border-t border-border bg-panel text-sm shadow-floating-panel outline-none touch-none [padding-bottom:max(0px,calc(var(--drawer-snap-point-offset)+var(--drawer-swipe-movement-y)))] [transform:translateY(calc(var(--drawer-snap-point-offset)+var(--drawer-swipe-movement-y)))] transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-swiping:select-none"
               // Full height comes from config, so the drawer and its full snap point always match.
               style={{ height: `${DRAWER_FULL_FRACTION * 100}dvh` }}
             >
@@ -52,7 +52,7 @@ export function TripDrawer({ stop, onStopChange, aboveContent, children }: TripD
                 className="flex shrink-0 cursor-grab justify-center pt-2 pb-1.5"
                 aria-hidden="true"
               >
-                <span className="h-1.5 w-10 rounded-full bg-toolbar-edge" />
+                <span className="h-1.5 w-10 rounded-full bg-muted-foreground" />
               </div>
 
               <Drawer.Title className="sr-only">Trip panel</Drawer.Title>

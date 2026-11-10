@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { HEATMAP_LOW_OPACITY, HEATMAP_RISK_OPACITY } from '../config/mapConfig'
 import { RiskLevel } from '../types/risk'
 import type { Heatmap } from '../types/heatmap'
 import { RISK_LEVEL_COLORS } from '../config/riskConfig'
@@ -52,7 +53,13 @@ describe('getHeatmapColorExpression', () => {
 
 describe('getHeatmapOpacityExpression', () => {
   it('makes Low fainter than the risk levels for the given hour', () => {
-    expect(getHeatmapOpacityExpression(6)).toEqual(['match', ['get', 'r6'], RiskLevel.LOW, 0.2, 0.45])
+    expect(getHeatmapOpacityExpression(6)).toEqual([
+      'match',
+      ['get', 'r6'],
+      RiskLevel.LOW,
+      HEATMAP_LOW_OPACITY,
+      HEATMAP_RISK_OPACITY,
+    ])
   })
 })
 

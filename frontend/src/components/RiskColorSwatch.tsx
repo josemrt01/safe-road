@@ -10,7 +10,7 @@ export function RiskColorSwatch({ level }: RiskColorSwatchProps) {
   return (
     // The color comes from config at runtime, so it's an inline style instead of a Tailwind class.
     <span
-      className="inline-block size-3 shrink-0 rounded-sm"
+      className="inline-block size-2.5 shrink-0"
       style={{ backgroundColor: RISK_LEVEL_COLORS[level] }}
       aria-hidden="true"
     />

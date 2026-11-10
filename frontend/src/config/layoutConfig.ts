@@ -2,8 +2,8 @@
 // side panel; used by useIsWideScreen and MapView.
 export const NARROW_SCREEN_QUERY = '(max-width: 1023px)'
 
-// Drawer height at its low stop: just the handle and the toolbar (about 20px + 59px); used by DRAWER_SNAP_POINTS
-// and drawerStops.
+// Drawer height at its low stop: just the handle and the Trip / Routes tabs (about 20px + 40px); used by
+// DRAWER_SNAP_POINTS and drawerStops.
 export const DRAWER_LOW_HEIGHT = '80px'
 
 // Drawer height at its middle stop, as a share of the screen height; used by drawerStops and getRouteFitPadding.
@@ -16,5 +16,5 @@ export const DRAWER_FULL_FRACTION = 0.92
 // The three stops in Base UI's snap point format (px string or screen share), low to full; used by TripDrawer.
 export const DRAWER_SNAP_POINTS: (string | number)[] = [DRAWER_LOW_HEIGHT, DRAWER_MIDDLE_FRACTION, DRAWER_FULL_FRACTION]
 
-// Height in pixels of the compact forecast card plus its gap above the drawer; used by getRouteFitPadding.
-export const COMPACT_FORECAST_CARD_HEIGHT = 120
+// Height in pixels of the compact forecast band plus its gap above the drawer; used by getRouteFitPadding.
+export const COMPACT_FORECAST_BAND_HEIGHT = 140

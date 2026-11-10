@@ -2,12 +2,46 @@ import type { ExpressionSpecification } from 'maplibre-gl'
 import { RiskLevel } from '../types/risk'
 import { RISK_LEVEL_COLORS } from './riskConfig'
 
-// Map look (OpenFreeMap "liberty" vector style, no API key); used by MapView.
-export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
+// Map look (OpenFreeMap "fiord" vector style: dark slate blue, no API key); used by MapView.
+export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/fiord'
 
-// First label layer (river names) of the map style, above its roads, bridges and buildings; our layers go under it,
+// One paint color of the map style to replace; used by MAP_STYLE_COLOR_OVERRIDES.
+export type MapStyleColorOverride = {
+  layerId: string
+  // The paint property that holds the layer's color, by layer type (background, area, line).
+  property: 'background-color' | 'fill-color' | 'line-color'
+  color: string
+}
+
+// Land, water, parks, buildings, roads and state lines of the "fiord" style, moved from its slate blue to the app's
+// dark teal so the map and the panels look like one piece. Darker than the panels, so the map reads as the back
+// layer; applied when the style loads; used by MapView.
+// Plain values, since MapLibre paints on a canvas and can't read CSS variables.
+export const MAP_STYLE_COLOR_OVERRIDES: MapStyleColorOverride[] = [
+  { layerId: 'background', property: 'background-color', color: '#132e34' },
+  { layerId: 'water', property: 'fill-color', color: '#0a1f23' },
+  { layerId: 'waterway', property: 'line-color', color: '#0a1f23' },
+  { layerId: 'landcover_wood', property: 'fill-color', color: 'rgba(8, 22, 26, 0.4)' },
+  { layerId: 'park', property: 'fill-color', color: '#173a3d' },
+  { layerId: 'building', property: 'fill-color', color: 'rgba(10, 26, 30, 0.6)' },
+  { layerId: 'highway_minor', property: 'line-color', color: '#28494f' },
+  { layerId: 'highway_major_casing', property: 'line-color', color: '#335a60' },
+  { layerId: 'highway_major_inner', property: 'line-color', color: '#1e3e44' },
+  { layerId: 'highway_motorway_casing', property: 'line-color', color: '#3a6369' },
+  { layerId: 'highway_motorway_inner', property: 'line-color', color: '#1e3e44' },
+  { layerId: 'boundary_state', property: 'line-color', color: 'rgba(143, 224, 230, 0.2)' },
+]
+
+// Place-name layers of the "fiord" style, whose blue glow around the letters clashes with the teal; used by MapView
+// with MAP_LABEL_HALO_COLOR.
+export const MAP_PLACE_LABEL_LAYER_IDS = ['place_village', 'place_town', 'place_city', 'place_city_large', 'place_state']
+
+// Near-black glow around the place names instead (--color-asphalt at 70%); used by MapView.
+export const MAP_LABEL_HALO_COLOR = 'rgba(10, 26, 30, 0.7)'
+
+// First label layer (water names) of the map style, above its roads and buildings; our layers go under it,
 // so place and road names stay readable on top of the route; used by MapView.
-export const MAP_LABEL_LAYER_ID = 'waterway_line_label'
+export const MAP_LABEL_LAYER_ID = 'water_name'
 
 // Zoom levels and width multipliers for lines and dots that grow as the map zooms in: thinner zoomed out,
 // the base width at a whole-route view, and much wider at street level; used by getZoomScaledWidth.
@@ -39,21 +73,17 @@ export const CONTIGUOUS_US_BOUNDS: [[number, number], [number, number]] = [
   [-66.9, 49.4],
 ]
 
-// Pixels kept around the US on the first view; left clears the side panel (448px, w-[28rem] in App)
-// so the country is centered in the part of the map you can see; used by MapView.
-export const INITIAL_FIT_PADDING = { top: 40, right: 40, bottom: 40, left: 488 }
+// Pixels kept around the US on the first view; the side panel sits beside the map, not over it, so the same on
+// every side; used by MapView.
+export const INITIAL_FIT_PADDING = 30
 
-// Small even padding for the first view on narrow screens, where the bottom drawer starts full height
-// and the map is not visible behind it yet; used by MapView.
-export const INITIAL_FIT_PADDING_NARROW = { top: 20, right: 20, bottom: 20, left: 20 }
-
-// Name of the route data (one line per stretch between checkpoints) inside MapLibre; used by MapView.
+// Name of the route data (one line per segment between checkpoints) inside MapLibre; used by MapView.
 export const ROUTE_SEGMENT_SOURCE_ID = 'route-segments'
 
-// Layer that draws every route stretch; clickable; used by MapView.
+// Layer that draws every route segment; clickable; used by MapView.
 export const ROUTE_SEGMENT_LAYER_ID = 'route-segments-line'
 
-// Layer that draws the hovered or selected stretch on top, thicker; used by MapView.
+// Layer that draws the hovered or selected segment on top, thicker; used by MapView.
 export const ROUTE_SEGMENT_HIGHLIGHT_LAYER_ID = 'route-segment-highlight'
 
 // Name of the heatmap grid points inside MapLibre; used by MapView.
@@ -72,13 +102,14 @@ export const HEATMAP_SOURCE_MAX_ZOOM = 4
 // and blend into one area instead of separate dots; used by getHeatmapRadiusAtZoom0.
 export const HEATMAP_CELL_COVERAGE = 1.25
 
-// Heatmap circle opacity for Moderate and worse; low enough that the map and routes stay readable underneath;
+// Heatmap circle opacity for Moderate and worse; low enough that the map and routes stay readable underneath and the
+// warm colors tint the area instead of pulling the eye away from the routes;
 // used by getHeatmapOpacityExpression.
-export const HEATMAP_RISK_OPACITY = 0.45
+export const HEATMAP_RISK_OPACITY = 0.28
 
 // Fainter opacity for Low cells: the corridor stays visible as "checked, calm" without covering the map;
 // used by getHeatmapOpacityExpression.
-export const HEATMAP_LOW_OPACITY = 0.2
+export const HEATMAP_LOW_OPACITY = 0.1
 
 // Name of the unselected route lines inside MapLibre; used by MapView.
 export const OTHER_ROUTES_SOURCE_ID = 'other-routes'
@@ -86,8 +117,9 @@ export const OTHER_ROUTES_SOURCE_ID = 'other-routes'
 // Layer that draws the unselected routes as thin gray lines under the selected route; used by MapView.
 export const OTHER_ROUTES_LAYER_ID = 'other-routes-line'
 
-// Color of the unselected routes, a neutral gray apart from the risk colors; used by MapView.
-export const OTHER_ROUTE_COLOR = '#6e7781'
+// Color of the unselected routes, a pale gray-teal apart from the risk colors that shows on the dark map;
+// used by MapView.
+export const OTHER_ROUTE_COLOR = '#a9c3c6'
 
 // Thickness of the unselected routes (4px at zoom 9, growing with zoom), thinner than the selected one; used by MapView.
 export const OTHER_ROUTE_WIDTH = getZoomScaledWidth(4)
@@ -122,9 +154,9 @@ export const ROUTE_SEGMENT_COLOR_EXPRESSION: ExpressionSpecification = [
   UNKNOWN_LEVEL_COLOR,
 ]
 
-// Dark gray outline under the route, so yellow and green stand out on the light map without a harsh black edge;
-// used by MapView.
-export const ROUTE_CASING_COLOR = '#424a53'
+// Near-black outline under the route, so every risk color stands out from the dark map; the same value as
+// --color-asphalt in index.css (MapLibre paints on a canvas and can't read CSS variables); used by MapView.
+export const ROUTE_CASING_COLOR = '#0a1a1e'
 
 // Outline thickness (7px at zoom 9, growing with zoom); wider than ROUTE_LINE_WIDTH so a thin border shows on each
 // side; used by MapView.
@@ -133,7 +165,7 @@ export const ROUTE_CASING_WIDTH = getZoomScaledWidth(7)
 // Route line thickness (5px at zoom 9, growing with zoom); used by MapView.
 export const ROUTE_LINE_WIDTH = getZoomScaledWidth(5)
 
-// Thickness of the hovered or selected route stretch (9px at zoom 9, growing with zoom), drawn in its own risk color;
+// Thickness of the hovered or selected route segment (9px at zoom 9, growing with zoom), drawn in its own risk color;
 // used by MapView.
 export const ROUTE_SEGMENT_HIGHLIGHT_WIDTH = getZoomScaledWidth(9)
 
@@ -150,15 +182,15 @@ export const SEGMENT_POPUP_OFFSET = 10
 // Milliseconds the camera takes to fly to a new route; used by MapView.
 export const FIT_ANIMATION_MS = 1000
 
-// Pixels kept around the route when zooming to it, so the start and end pins aren't at the edge;
-// left clears the side panel (448px, w-[28rem] in App) plus 100px, bottom clears the forecast card; used by MapView.
-export const ROUTE_FIT_PADDING = { top: 100, right: 100, bottom: 280, left: 548 }
+// Pixels kept around the route when zooming to it, so the start and end markers aren't at the edge; the panel and
+// the forecast band sit beside the map, so only the map controls (top right) need extra room; used by MapView.
+export const ROUTE_FIT_PADDING = { top: 60, right: 140, bottom: 60, left: 60 }
 
 // Top and side padding when zooming to a route on narrow screens; the bottom comes from the drawer's height
 // (getRouteFitPadding).
 export const ROUTE_FIT_PADDING_NARROW_SIDES = { top: 60, right: 40, left: 40 }
 
-// Smallest map height in pixels left for the route when the drawer and card cover the rest (short landscape
+// Smallest map height in pixels left for the route when the drawer and forecast band cover the rest (short landscape
 // phones); used by getRouteFitPadding.
 export const MIN_ROUTE_FIT_HEIGHT = 120
 

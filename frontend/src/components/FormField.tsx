@@ -1,4 +1,6 @@
+import { CircleAlertIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { LABEL_CLASS_NAME } from '../config/textStyles'
 
 type FormFieldProps = {
   // id of the input or select inside, so clicking the label focuses it.
@@ -34,7 +36,7 @@ type FieldLabelProps = {
 // A field's label with the red * for required fields; used by FormField and TripEndpointFields.
 export function FieldLabel({ id, label, isRequired, className = '' }: FieldLabelProps) {
   return (
-    <label htmlFor={id} className={`font-semibold text-shadow-letterpress ${className}`}>
+    <label htmlFor={id} className={`${LABEL_CLASS_NAME} ${className}`}>
       {label}
       {/* Hidden from screen readers, which hear "required" from aria-required instead of "star". */}
       {isRequired && (
@@ -52,7 +54,12 @@ type FieldErrorProps = {
   className?: string
 }
 
-// The red message under a field; used by FormField and TripEndpointFields.
+// The red message under a field, with a small alert sign; used by FormField and TripEndpointFields.
 export function FieldError({ message, className = '' }: FieldErrorProps) {
-  return <p className={`text-error ${className}`}>{message}</p>
+  return (
+    <p className={`flex items-start gap-1.5 text-xs text-error ${className}`}>
+      <CircleAlertIcon className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+      {message}
+    </p>
+  )
 }

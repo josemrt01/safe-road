@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatDigitGroups,
   formatDistance,
   formatDuration,
   formatEta,
@@ -88,6 +89,16 @@ describe('formatHourMark', () => {
 
   it('shows other marks as a short day and hour', () => {
     expect(formatHourMark('2026-10-13T13:00:00Z', 12)).toBe('Tue 8 PM')
+  })
+})
+
+describe('formatDigitGroups', () => {
+  it('adds thousands separators', () => {
+    expect(formatDigitGroups('45000')).toBe('45,000')
+  })
+
+  it('keeps an empty box empty', () => {
+    expect(formatDigitGroups('')).toBe('')
   })
 })
 

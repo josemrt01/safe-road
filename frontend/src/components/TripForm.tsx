@@ -5,11 +5,11 @@ import { CHECKPOINT_SPACING_OPTIONS_MI } from '../config/checkpointConfig'
 import {
   PRIMARY_BUTTON_CLASS_NAME,
   SECONDARY_BUTTON_CLASS_NAME,
-  SEGMENTED_GROUP_CLASS_NAME,
   SEGMENTED_OPTION_CLASS_NAME,
 } from '../config/buttonStyles'
 import { FORM_CONTROL_CLASS_NAME } from '../config/formStyles'
 import { buildDepartureIso, getFirstDepartureSelection } from '../lib/departureOptions'
+import { formatDigitGroups } from '../lib/formatters'
 import { getRequiredFieldErrors } from '../lib/tripFormValidation'
 import { buildTripPlanRequest } from '../lib/tripPlanRequest'
 import { DepartureMode, type DepartureChoice } from '../types/departure'
@@ -22,6 +22,7 @@ import {
   type TripPlan,
   type TripSettings,
 } from '../types/tripPlan'
+import { AlertMessage } from './AlertMessage'
 import { DepartureInput } from './DepartureInput'
 import { FormField } from './FormField'
 import { PlaceSearchInput } from './PlaceSearchInput'
@@ -51,8 +52,9 @@ export function TripForm({ onTripPlanned, onClear }: TripFormProps) {
   }))
   // null until the user picks one of the spacing buttons.
   const [spacingMi, setSpacingMi] = useState<number | null>(null)
-  // Kept as the typed text, so clearing the box while editing doesn't turn into NaN; starts empty.
-  const [weightText, setWeightText] = useState('')
+  // Only the typed digits ("45000"), so clearing the box doesn't turn into NaN; the box shows them with
+  // thousands separators. Starts empty.
+  const [weightDigits, setWeightDigits] = useState('')
   const [isPlanning, setIsPlanning] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   // Error not tied to one input (no road, service down, network); shown under the button.
@@ -70,7 +72,7 @@ export function TripForm({ onTripPlanned, onClear }: TripFormProps) {
       { field: TripPlanField.ORIGIN, text: origin },
       { field: TripPlanField.DESTINATION, text: destination },
       { field: TripPlanField.SPACING_MI, text: spacingMi === null ? '' : String(spacingMi) },
-      { field: TripPlanField.WEIGHT_LB, text: weightText },
+      { field: TripPlanField.WEIGHT_LB, text: weightDigits },
     ])
     if (Object.keys(requiredFieldErrors).length > 0) {
       setFieldErrors(requiredFieldErrors)
@@ -83,7 +85,7 @@ export function TripForm({ onTripPlanned, onClear }: TripFormProps) {
     setIsPlanning(true)
 
     // The box isn't blank here; out-of-range weights get their message from the backend.
-    const weightLb = Number(weightText)
+    const weightLb = Number(weightDigits)
 
     try {
       const tripPlan = await getTripPlan(
@@ -249,7 +251,7 @@ export function TripForm({ onTripPlanned, onClear }: TripFormProps) {
             spacing={0}
             value={spacingMi === null ? [] : [String(spacingMi)]}
             onValueChange={handleSpacingChange}
-            className={SEGMENTED_GROUP_CLASS_NAME}
+            className="w-full"
           >
             {CHECKPOINT_SPACING_OPTIONS_MI.map((spacingOption) => (
               <ToggleGroupItem
@@ -267,14 +269,17 @@ export function TripForm({ onTripPlanned, onClear }: TripFormProps) {
         <FormField id="weight-input" label="Truck weight (lb)" isRequired error={getFieldError(TripPlanField.WEIGHT_LB)}>
           <input
             id="weight-input"
-            type="number"
+            // Text, not number: a number box can't show the thousands separators. inputMode still opens the
+            // phone's number pad.
+            type="text"
             inputMode="numeric"
-            value={weightText}
-            placeholder="e.g. 45000"
+            value={formatDigitGroups(weightDigits)}
+            placeholder="e.g. 45,000"
             aria-invalid={Boolean(getFieldError(TripPlanField.WEIGHT_LB))}
             aria-required
             onChange={(event) => {
-              setWeightText(event.target.value)
+              // Keep only the digits, so the separators (and any other typed character) never reach the number.
+              setWeightDigits(event.target.value.replace(/\D/g, ''))
               clearErrorFor(TripPlanField.WEIGHT_LB)
             }}
             className={FORM_CONTROL_CLASS_NAME}
@@ -284,7 +289,7 @@ export function TripForm({ onTripPlanned, onClear }: TripFormProps) {
         <div className="mt-2 flex gap-2">
           <button
             type="submit"
-            className={`flex-1 p-2.5 ${PRIMARY_BUTTON_CLASS_NAME}`}
+            className={`flex-1 p-3 ${PRIMARY_BUTTON_CLASS_NAME}`}
           >
             {isPlanning ? 'Planning…' : 'Plan route'}
           </button>
@@ -298,11 +303,7 @@ export function TripForm({ onTripPlanned, onClear }: TripFormProps) {
         </div>
 
         {/* Errors not tied to one input: no road, routing service down, network. */}
-        {generalError && (
-          <p className="text-error" role="alert">
-            {generalError}
-          </p>
-        )}
+        {generalError && <AlertMessage title="Couldn't plan the trip">{generalError}</AlertMessage>}
       </fieldset>
     </form>
   )

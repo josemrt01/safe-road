@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Map, { AttributionControl, Layer, NavigationControl, Popup, Source, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre'
+import Map, { AttributionControl, Layer, Popup, Source, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre'
 import { LngLatBounds } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
@@ -13,8 +13,10 @@ import {
   HEATMAP_SOURCE_MAX_ZOOM,
   CONTIGUOUS_US_BOUNDS,
   INITIAL_FIT_PADDING,
-  INITIAL_FIT_PADDING_NARROW,
+  MAP_LABEL_HALO_COLOR,
   MAP_LABEL_LAYER_ID,
+  MAP_PLACE_LABEL_LAYER_IDS,
+  MAP_STYLE_COLOR_OVERRIDES,
   MAP_STYLE_URL,
   MAX_ROUTE_FIT_ZOOM,
   OTHER_ROUTE_COLOR,
@@ -46,18 +48,30 @@ import { buildCheckpointPoints, buildOtherRouteLines, buildRouteSegments, getTru
 import { getRouteById } from '../lib/tripPlanRoutes'
 import { RouteEndpoint } from '../types/routeEndpoint'
 import type { Heatmap } from '../types/heatmap'
+import type { MapLayerVisibility } from '../types/mapLayers'
 import type { SegmentClick, SelectedSegment } from '../types/selectedSegment'
 import type { TripPlan } from '../types/tripPlan'
+import { MapControls } from './MapControls'
 import { RouteEndpointMarker } from './RouteEndpointMarker'
 import { SegmentDetails } from './SegmentDetails'
 import { TruckMarker } from './TruckMarker'
 // Runs once to tell MapLibre where its worker file is; must load before any map is created.
 import '../lib/maplibreWorker'
 
-// Highlight filter value that matches no stretch; stretch indexes start at 0.
+// Highlight filter value that matches no segment; segment indexes start at 0.
 const NO_SEGMENT_INDEX = -1
 
-// Only the route stretches react to the mouse; MapLibre reports which one was hit.
+// The first camera fits the US; the map reads this only once, when it loads.
+const INITIAL_VIEW_STATE = { bounds: CONTIGUOUS_US_BOUNDS, fitBoundsOptions: { padding: INITIAL_FIT_PADDING } }
+
+// Every optional layer starts visible; the layer checkboxes change it.
+const ALL_LAYERS_VISIBLE: MapLayerVisibility = {
+  isWeatherVisible: true,
+  areOtherRoutesVisible: true,
+  areCheckpointsVisible: true,
+}
+
+// Only the route segments react to the mouse; MapLibre reports which one was hit.
 const INTERACTIVE_LAYER_IDS = [ROUTE_SEGMENT_LAYER_ID]
 
 type MapViewProps = {
@@ -89,21 +103,17 @@ export function MapView({
   onSelectSegment,
   isPopupEnabled,
 }: MapViewProps) {
-  // The first camera fits the US into the visible part of the map; the map reads this only once, when it loads.
-  const [initialViewState] = useState(() => ({
-    bounds: CONTIGUOUS_US_BOUNDS,
-    fitBoundsOptions: {
-      padding: window.matchMedia(NARROW_SCREEN_QUERY).matches ? INITIAL_FIT_PADDING_NARROW : INITIAL_FIT_PADDING,
-    },
-  }))
   // The map credits sit top-left on narrow screens, where the drawer covers the bottom of the map.
   const isWideScreen = useIsWideScreen()
   // Handle to the MapLibre map, so we can move its camera.
   const mapRef = useRef<MapRef>(null)
+  // True once the teal colors are on the map style; the style loads once, so they are applied once.
+  const areStyleColorsAppliedRef = useRef(false)
   const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null)
   // The map style's first label layer once the map has loaded; every layer of ours is drawn under it.
   // Until then (or if the style has no such layer) our layers go on top.
   const [labelLayerId, setLabelLayerId] = useState<string | undefined>(undefined)
+  const [layerVisibility, setLayerVisibility] = useState<MapLayerVisibility>(ALL_LAYERS_VISIBLE)
 
   const selectedRoute = tripPlan && selectedRouteId ? getRouteById(tripPlan, selectedRouteId) : null
 
@@ -152,15 +162,37 @@ export function MapView({
 
   const highlightedSegmentIndex = hoveredSegmentIndex ?? selectedSegment?.index ?? NO_SEGMENT_INDEX
 
+  // Runs as soon as the style is read, before the tiles draw, so the map never shows its original blue first.
+  function handleStyleData() {
+    const map = mapRef.current
+    if (!map || areStyleColorsAppliedRef.current) return
+    areStyleColorsAppliedRef.current = true
+
+    // A style without one of these layers keeps its own color there instead of failing.
+    for (const override of MAP_STYLE_COLOR_OVERRIDES) {
+      if (map.getLayer(override.layerId)) {
+        map.getMap().setPaintProperty(override.layerId, override.property, override.color)
+      }
+    }
+    for (const layerId of MAP_PLACE_LABEL_LAYER_IDS) {
+      if (map.getLayer(layerId)) {
+        map.getMap().setPaintProperty(layerId, 'text-halo-color', MAP_LABEL_HALO_COLOR)
+      }
+    }
+  }
+
   function handleLoad() {
     // Placing a layer under one the style doesn't have would fail, so check it exists first.
     if (mapRef.current?.getLayer(MAP_LABEL_LAYER_ID)) {
       setLabelLayerId(MAP_LABEL_LAYER_ID)
     }
+
+    // North stays up: there is no compass to turn the map back, so two-finger turning is off too.
+    mapRef.current?.getMap().touchZoomRotate.disableRotation()
   }
 
   function handleMouseMove(event: MapLayerMouseEvent) {
-    // features holds the stretch under the mouse (only INTERACTIVE_LAYER_IDS are checked), or nothing.
+    // features holds the segment under the mouse (only INTERACTIVE_LAYER_IDS are checked), or nothing.
     const segmentIndex = event.features?.[0]?.properties?.index
     setHoveredSegmentIndex(typeof segmentIndex === 'number' ? segmentIndex : null)
   }
@@ -177,28 +209,33 @@ export function MapView({
     onSelectSegment({ index: segmentIndex, lon: event.lngLat.lng, lat: event.lngLat.lat })
   }
 
-  // The two checkpoints at the ends of the clicked stretch.
+  // The two checkpoints at the ends of the clicked segment.
   const segmentStart = selectedSegment && selectedRoute ? selectedRoute.checkpoints[selectedSegment.index] : null
   const segmentEnd = selectedSegment && selectedRoute ? selectedRoute.checkpoints[selectedSegment.index + 1] : null
 
   return (
     <Map
       ref={mapRef}
-      initialViewState={initialViewState}
+      initialViewState={INITIAL_VIEW_STATE}
       mapStyle={MAP_STYLE_URL}
       style={{ width: '100%', height: '100%' }}
       interactiveLayerIds={INTERACTIVE_LAYER_IDS}
       // Our own AttributionControl below, so its corner can change with the layout.
       attributionControl={false}
+      // North stays up (see handleLoad).
+      dragRotate={false}
+      pitchWithRotate={false}
+      onStyleData={handleStyleData}
       onLoad={handleLoad}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoveredSegmentIndex(null)}
       onClick={handleClick}
-      // Pointer over a stretch tells the user it can be clicked.
+      // Pointer over a segment tells the user it can be clicked.
       cursor={hoveredSegmentIndex !== null ? 'pointer' : 'grab'}
     >
-      {/* Zoom +/- buttons and compass. */}
-      <NavigationControl position="top-right" />
+      {/* Darkened edges over the map; before the controls, so they stay bright on top of it. */}
+      <div className="pointer-events-none absolute inset-0 shadow-map-recess" aria-hidden="true" />
+      <MapControls layerVisibility={layerVisibility} onLayerVisibilityChange={setLayerVisibility} />
 
       {/* The key makes React add a new control when the corner changes; MapLibre can't move an existing one. */}
       <AttributionControl
@@ -208,14 +245,18 @@ export function MapView({
       />
 
       {/* Layers draw in the order listed: gray other routes, then the selected route's dark outline,
-          risk-colored stretches and highlight, then the dots on top; all under the map's place and road names. */}
-      {/* Weather heatmap at the bottom: each grid point a soft circle in its risk color (Low is fainter). */}
+          risk-colored segments and highlight, then the dots on top; all under the map's place and road names. */}
+      {/* The layer checkboxes hide layers instead of removing them: a layer added again would land on top of the
+          routes. */}
+      {/* Weather heatmap at the bottom: each grid point a soft circle in its risk color (Low is fainter). It arrives
+          after the routes, so it goes under the other routes' layer instead of under the labels (above the routes). */}
       {heatmapPoints && tripPlan && (
         <Source id={HEATMAP_SOURCE_ID} type="geojson" data={heatmapPoints} maxzoom={HEATMAP_SOURCE_MAX_ZOOM}>
           <Layer
             id={HEATMAP_LAYER_ID}
-            beforeId={labelLayerId}
+            beforeId={OTHER_ROUTES_LAYER_ID}
             type="circle"
+            layout={{ visibility: getLayerVisibility(layerVisibility.isWeatherVisible) }}
             paint={{
               // Only this rule changes when the slider moves; the points themselves stay loaded.
               'circle-color': getHeatmapColorExpression(forecastHour),
@@ -234,7 +275,11 @@ export function MapView({
             id={OTHER_ROUTES_LAYER_ID}
             beforeId={labelLayerId}
             type="line"
-            layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+            layout={{
+              'line-join': 'round',
+              'line-cap': 'round',
+              visibility: getLayerVisibility(layerVisibility.areOtherRoutesVisible),
+            }}
             paint={{ 'line-color': OTHER_ROUTE_COLOR, 'line-width': OTHER_ROUTE_WIDTH }}
           />
         </Source>
@@ -246,7 +291,7 @@ export function MapView({
             id={ROUTE_CASING_LAYER_ID}
             beforeId={labelLayerId}
             type="line"
-            // Round joins and caps keep corners and stretch ends smooth.
+            // Round joins and caps keep corners and segment ends smooth.
             layout={{ 'line-join': 'round', 'line-cap': 'round' }}
             paint={{ 'line-color': ROUTE_CASING_COLOR, 'line-width': ROUTE_CASING_WIDTH }}
           />
@@ -255,14 +300,14 @@ export function MapView({
             beforeId={labelLayerId}
             type="line"
             layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-            // Each stretch takes the color of its risk level.
+            // Each segment takes the color of its risk level.
             paint={{ 'line-color': ROUTE_SEGMENT_COLOR_EXPRESSION, 'line-width': ROUTE_LINE_WIDTH }}
           />
           <Layer
             id={ROUTE_SEGMENT_HIGHLIGHT_LAYER_ID}
             beforeId={labelLayerId}
             type="line"
-            // Draw only the stretch whose index matches the hovered or selected one, thicker in its own color.
+            // Draw only the segment whose index matches the hovered or selected one, thicker in its own color.
             filter={['==', ['get', 'index'], highlightedSegmentIndex]}
             layout={{ 'line-join': 'round', 'line-cap': 'round' }}
             paint={{ 'line-color': ROUTE_SEGMENT_COLOR_EXPRESSION, 'line-width': ROUTE_SEGMENT_HIGHLIGHT_WIDTH }}
@@ -276,12 +321,13 @@ export function MapView({
             id={CHECKPOINT_LAYER_ID}
             beforeId={labelLayerId}
             type="circle"
+            layout={{ visibility: getLayerVisibility(layerVisibility.areCheckpointsVisible) }}
             paint={{ 'circle-color': CHECKPOINT_DOT_COLOR, 'circle-radius': CHECKPOINT_DOT_RADIUS }}
           />
         </Source>
       )}
 
-      {/* Start (A) and end (B) pins, drawn above the route. */}
+      {/* Start and end markers, drawn above the route. */}
       {tripPlan && (
         <>
           <RouteEndpointMarker place={tripPlan.origin} endpoint={RouteEndpoint.START} />
@@ -289,10 +335,10 @@ export function MapView({
         </>
       )}
 
-      {/* After the A and B pins, so the truck is drawn on top of them. */}
+      {/* After the start and end markers, so the truck is drawn on top of them. */}
       {isTruckVisible && truckPosition && <TruckMarker position={truckPosition} />}
 
-      {/* Miles, times, risk and weather for the clicked stretch. */}
+      {/* Miles, times, risk and weather for the clicked segment. */}
       {isPopupEnabled && selectedSegment && segmentStart && segmentEnd && (
         <Popup
           longitude={selectedSegment.lon}
@@ -300,18 +346,24 @@ export function MapView({
           // No anchor given, so MapLibre opens it on whichever side of the click fits inside the map
           // (below a segment near the top edge, instead of cut off).
           offset={SEGMENT_POPUP_OFFSET}
-          // Room for the 256px content plus padding; MapLibre's default (240px) would squeeze it.
+          // Room for the 256px content and its border; MapLibre's default (240px) would squeeze it.
           maxWidth="320px"
-          // Our own onClick already closes it on empty-map clicks.
+          // Our own onClick already closes it on empty-map clicks, and SegmentDetails has its own close button.
           closeOnClick={false}
-          onClose={() => onSelectSegment(null)}
+          closeButton={false}
         >
           <div className="w-64">
-            <SegmentDetails start={segmentStart} end={segmentEnd} />
+            <SegmentDetails start={segmentStart} end={segmentEnd} onClose={() => onSelectSegment(null)} />
           </div>
         </Popup>
       )}
 
     </Map>
   )
+}
+
+// MapLibre's layout value that shows or hides a layer without removing it, so the layer keeps its place in the
+// drawing order.
+function getLayerVisibility(isVisible: boolean): 'visible' | 'none' {
+  return isVisible ? 'visible' : 'none'
 }

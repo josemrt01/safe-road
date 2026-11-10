@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { makeCheckpoint } from '../test/makeCheckpoint'
 import { makeRoutePlan } from '../test/makeRoutePlan'
+import { RiskLevel } from '../types/risk'
 import type { MilesByLevel } from '../types/tripPlan'
-import { getFastestRouteId, getRiskyMiles, getRiskyPercent } from './routeRisk'
+import { getFastestRouteId, getRiskStripPieces, getRiskyMiles, getRiskyPercent } from './routeRisk'
 
 // 200 miles in all: mostly Low, some High and Severe, no Moderate or No Travel.
 const milesByLevel: MilesByLevel = { low: 150, moderate: 0, high: 30, severe: 20, no_travel: 0 }
@@ -31,5 +33,29 @@ describe('getFastestRouteId', () => {
     ]
 
     expect(getFastestRouteId(routes)).toBe('B')
+  })
+})
+
+describe('getRiskStripPieces', () => {
+  it('joins neighboring segments of the same level into one piece', () => {
+    const checkpoints = [
+      makeCheckpoint({ mile: 0 }),
+      makeCheckpoint({ mile: 25 }),
+      makeCheckpoint({ mile: 50, level: RiskLevel.SEVERE }),
+      makeCheckpoint({ mile: 75 }),
+      makeCheckpoint({ mile: 100 }),
+      makeCheckpoint({ mile: 110 }),
+    ]
+
+    // 25-50 and 50-75 take Severe from mile 50; the rest is Low.
+    expect(getRiskStripPieces(checkpoints)).toEqual([
+      { level: RiskLevel.LOW, miles: 25 },
+      { level: RiskLevel.SEVERE, miles: 50 },
+      { level: RiskLevel.LOW, miles: 35 },
+    ])
+  })
+
+  it('is empty for a route with a single checkpoint', () => {
+    expect(getRiskStripPieces([makeCheckpoint({})])).toEqual([])
   })
 })

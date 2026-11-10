@@ -4,14 +4,17 @@ import { getBackendStatus } from './api/healthApi'
 import { getHeatmap } from './api/heatmapApi'
 import { DrawerSegmentDetails } from './components/DrawerSegmentDetails'
 import { ForecastSlider } from './components/ForecastSlider'
+import { InfoDialog } from './components/InfoDialog'
 import { MapView } from './components/MapView'
 import { PanelContent } from './components/PanelContent'
+import { TopBar } from './components/TopBar'
 import { TripDrawer } from './components/TripDrawer'
-import { getRouteById, getRouteOptionName } from './lib/tripPlanRoutes'
+import { getRouteById } from './lib/tripPlanRoutes'
 import { useIsWideScreen } from './lib/useIsWideScreen'
 import { BackendStatus } from './types/backendStatus'
 import { DrawerStop } from './types/drawerStop'
 import { HeatmapStatus, type Heatmap } from './types/heatmap'
+import type { InfoTopic } from './types/infoTopic'
 import { PanelView } from './types/panelView'
 import type { SegmentClick, SelectedSegment } from './types/selectedSegment'
 import type { RoutePlan, TripPlan, TripSettings } from './types/tripPlan'
@@ -28,7 +31,7 @@ function App() {
   const [tripPlan, setTripPlan] = useState<TripPlan | null>(null)
   // Truck settings the current plan was made with; set together with tripPlan.
   const [tripSettings, setTripSettings] = useState<TripSettings | null>(null)
-  // The form until a plan arrives, then the results; "Edit" and "Back to routes" switch between them.
+  // The form until a plan arrives, then the results; the Trip and Routes tabs switch between them.
   const [panelView, setPanelView] = useState<PanelView>(PanelView.FORM)
   // Changing the form's key makes React build a new, empty form; Clear adds 1 to it.
   const [formResetCount, setFormResetCount] = useState(0)
@@ -45,6 +48,10 @@ function App() {
   const [selectedSegment, setSelectedSegment] = useState<SelectedSegment | null>(null)
   // Side panel from 1024px up, drawer below.
   const isWideScreen = useIsWideScreen()
+  // Wide screens: the side panel can be hidden to give the map the whole width.
+  const [isPanelOpen, setIsPanelOpen] = useState(true)
+  // The reference page open over the map ("How risk works" or "About"), or null.
+  const [infoTopic, setInfoTopic] = useState<InfoTopic | null>(null)
 
   const selectedRoute = tripPlan && selectedRouteId ? getRouteById(tripPlan, selectedRouteId) : null
 
@@ -96,13 +103,13 @@ function App() {
     setFormResetCount((previousCount) => previousCount + 1)
   }
 
-  // "Edit": back to the form, with the drawer full on narrow screens.
+  // The Trip tab: back to the form, with the drawer full on narrow screens.
   function handleShowForm() {
     setPanelView(PanelView.FORM)
     setDrawerStop(DrawerStop.FULL)
   }
 
-  // "Routes": back to the cards, with the drawer in the middle so the cards and the map show together.
+  // The Routes tab: back to the route list, with the drawer in the middle so the list and the map show together.
   function handleShowResults() {
     setPanelView(PanelView.RESULTS)
     setDrawerStop(DrawerStop.MIDDLE)
@@ -128,8 +135,8 @@ function App() {
     }
   }
 
-  // The same panel content in both layouts; only its container and toolbar style change.
-  function renderPanelContent(scrollArea: ElementType, isToolbarFlat: boolean) {
+  // The same panel content in both layouts; only its scrolling container changes.
+  function renderPanelContent(scrollArea: ElementType) {
     return (
       <PanelContent
         panelView={panelView}
@@ -144,12 +151,11 @@ function App() {
         onShowResults={handleShowResults}
         onSelectRoute={setSelectedRouteId}
         ScrollArea={scrollArea}
-        isToolbarFlat={isToolbarFlat}
       />
     )
   }
 
-  // The forecast card for the selected route; compact on the drawer, full over the map.
+  // The forecast band for the selected route; compact on the drawer, full under the map.
   function renderForecastSlider(isCompact: boolean, plan: TripPlan, route: RoutePlan) {
     return (
       <ForecastSlider
@@ -159,61 +165,81 @@ function App() {
         onUse={() => setIsTruckVisible(true)}
         heatmap={currentHeatmap?.heatmap ?? null}
         heatmapStatus={currentHeatmap?.status ?? null}
-        routeName={getRouteOptionName(route)}
+        route={route}
         departureUtc={plan.departure_utc}
-        arrivalUtc={route.arrival_utc}
       />
     )
   }
 
   return (
-    // The map fills the screen in both layouts; the panel is a left sidebar from 1024px up, a bottom drawer below.
-    <main className="relative h-dvh overflow-hidden">
-      {/* No visible app title; screen readers still get the page's name. */}
-      <h1 className="sr-only">Truck Route Weather</h1>
+    // The top bar, then the map area. Wide screens: the side panel, then the map with the forecast band under it.
+    // Narrow screens: the map alone, with the panel as a bottom drawer over it.
+    // isolate keeps the app's own layers (top bar, panel, forecast band) inside the app, so the dialog and the
+    // drawer, drawn after it at the end of the page, always cover all of it.
+    <div className="isolate flex h-dvh flex-col">
+      <TopBar onOpenInfo={setInfoTopic} />
 
-      <div className="absolute inset-0">
-        <MapView
-          tripPlan={tripPlan}
-          selectedRouteId={selectedRouteId}
-          heatmap={currentHeatmap?.heatmap ?? null}
-          forecastHour={forecastHour}
-          isTruckVisible={isTruckVisible}
-          selectedSegment={visibleSegment}
-          onSelectSegment={handleSelectSegment}
-          isPopupEnabled={isWideScreen}
-        />
-        {isWideScreen && tripPlan && selectedRoute && (
-          // Centered over the map, clear of the side panel (28rem) and high enough to leave MapLibre's credits visible.
-          <div className="pointer-events-none absolute right-6 bottom-10 left-[29.5rem] flex justify-center">
-            <div className="pointer-events-auto w-full max-w-2xl">
-              {renderForecastSlider(false, tripPlan, selectedRoute)}
-            </div>
-          </div>
+      <main className="flex min-h-0 flex-1">
+        {isWideScreen && (
+          // Hidden, not removed, while closed, so the form keeps its values. Above the map, so its shadow falls on it.
+          <aside
+            className={`relative z-10 w-95 shrink-0 flex-col border-r border-border bg-panel text-sm shadow-side-panel ${isPanelOpen ? 'flex' : 'hidden'}`}
+          >
+            {renderPanelContent('div')}
+          </aside>
         )}
-      </div>
 
-      {isWideScreen ? (
-        // w-[28rem] (448px) must match the left value of ROUTE_FIT_PADDING in mapConfig.ts.
-        <aside className="absolute top-0 left-0 flex h-dvh w-[28rem] flex-col bg-panel text-base shadow-floating-panel">
-          {renderPanelContent('div', false)}
-        </aside>
-      ) : (
-        <TripDrawer
-          stop={drawerStop}
-          onStopChange={setDrawerStop}
-          aboveContent={tripPlan && selectedRoute ? renderForecastSlider(true, tripPlan, selectedRoute) : null}
-        >
-          {isSegmentShown && (
-            <DrawerSegmentDetails start={segmentStart} end={segmentEnd} onBack={() => setSelectedSegment(null)} />
-          )}
-          {/* Hidden, not removed, while a segment shows, so the form keeps its values for "Edit". */}
-          <div className={isSegmentShown ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
-            {renderPanelContent(Drawer.Content, true)}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="relative min-h-0 flex-1">
+            {/* Pinned to the box's edges, so MapLibre gets an exact size that follows the window and the panel. */}
+            <div className="absolute inset-0">
+              <MapView
+                tripPlan={tripPlan}
+                selectedRouteId={selectedRouteId}
+                heatmap={currentHeatmap?.heatmap ?? null}
+                forecastHour={forecastHour}
+                isTruckVisible={isTruckVisible}
+                selectedSegment={visibleSegment}
+                onSelectSegment={handleSelectSegment}
+                isPopupEnabled={isWideScreen}
+              />
+            </div>
+
+            {isWideScreen && (
+              // A tab on the map's left edge; written top to bottom so it stays narrow.
+              <button
+                type="button"
+                onClick={() => setIsPanelOpen(!isPanelOpen)}
+                aria-expanded={isPanelOpen}
+                className="absolute top-3 left-0 cursor-pointer border border-l-0 border-border bg-asphalt px-2 py-3 shadow-floating-panel font-display text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase [writing-mode:vertical-rl] hover:text-primary"
+              >
+                {isPanelOpen ? 'Hide panel' : 'Show panel'}
+              </button>
+            )}
           </div>
-        </TripDrawer>
-      )}
-    </main>
+
+          {isWideScreen && tripPlan && selectedRoute && renderForecastSlider(false, tripPlan, selectedRoute)}
+        </div>
+
+        {!isWideScreen && (
+          <TripDrawer
+            stop={drawerStop}
+            onStopChange={setDrawerStop}
+            aboveContent={tripPlan && selectedRoute ? renderForecastSlider(true, tripPlan, selectedRoute) : null}
+          >
+            {isSegmentShown && (
+              <DrawerSegmentDetails start={segmentStart} end={segmentEnd} onBack={() => setSelectedSegment(null)} />
+            )}
+            {/* Hidden, not removed, while a segment shows, so the form keeps its values for the Trip tab. */}
+            <div className={isSegmentShown ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
+              {renderPanelContent(Drawer.Content)}
+            </div>
+          </TripDrawer>
+        )}
+      </main>
+
+      <InfoDialog topic={infoTopic} onClose={() => setInfoTopic(null)} />
+    </div>
   )
 }
 

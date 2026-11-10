@@ -1,26 +1,28 @@
 import { RiskCause, RiskLevel } from '../types/risk'
 
-// Color per risk level; a JS value because MapLibre paints on a canvas and can't read CSS variables;
-// used by the map route colors, RiskLegend and SegmentDetails.
+// Color per risk level, bright enough to read on the dark map and panel; a JS value because MapLibre paints on a
+// canvas and can't read CSS variables; used by the map, the legend, the route rows, the risk strip, the hourly
+// forecast bars, the segment details and the risk table.
 export const RISK_LEVEL_COLORS: Record<RiskLevel, string> = {
-  [RiskLevel.LOW]: '#2da44e',
-  [RiskLevel.MODERATE]: '#d4a72c',
-  [RiskLevel.HIGH]: '#e16f24',
-  [RiskLevel.SEVERE]: '#cf222e',
-  [RiskLevel.NO_TRAVEL]: '#6e2b8f',
+  [RiskLevel.LOW]: '#45b061',
+  [RiskLevel.MODERATE]: '#e3b53c',
+  [RiskLevel.HIGH]: '#ee7b30',
+  [RiskLevel.SEVERE]: '#e5404a',
+  [RiskLevel.NO_TRAVEL]: '#a35bd1',
 }
 
-// Text color that stays readable on each level's color (dark on the light yellow);
-// used by the risk pills on route cards and the route popup.
+// Text color that stays readable on each level's color: near-black on the lighter green, yellow and orange,
+// off-white on red and purple. CSS variables, since this is only used on page elements (not the map canvas);
+// used by the route rows' number blocks, the segment details band and the risk table.
 export const RISK_LEVEL_TEXT_COLORS: Record<RiskLevel, string> = {
-  [RiskLevel.LOW]: '#ffffff',
-  [RiskLevel.MODERATE]: '#1f2328',
-  [RiskLevel.HIGH]: '#ffffff',
-  [RiskLevel.SEVERE]: '#ffffff',
-  [RiskLevel.NO_TRAVEL]: '#ffffff',
+  [RiskLevel.LOW]: 'var(--color-asphalt)',
+  [RiskLevel.MODERATE]: 'var(--color-asphalt)',
+  [RiskLevel.HIGH]: 'var(--color-asphalt)',
+  [RiskLevel.SEVERE]: 'var(--color-foreground)',
+  [RiskLevel.NO_TRAVEL]: 'var(--color-foreground)',
 }
 
-// Name shown for each risk level; used by RiskLegend, SegmentDetails and the route cards.
+// Name shown for each risk level; used by RiskLegend, SegmentDetails, the route rows, the risk strip and table.
 export const RISK_LEVEL_LABELS: Record<RiskLevel, string> = {
   [RiskLevel.LOW]: 'Low',
   [RiskLevel.MODERATE]: 'Moderate',

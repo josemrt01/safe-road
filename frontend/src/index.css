@@ -4,58 +4,49 @@
 /* shadcn's custom variants (data-open, data-checked, ...) and keyframes. */
 @import 'shadcn/tailwind.css';
 
-/* Turns on "dark:" classes only under a .dark parent; we never add one, so shadcn components stay light
-   even when the computer is in dark mode. */
+/* Turns on "dark:" classes only under a .dark parent; we never add one, so shadcn components keep using our own
+   tokens below (already dark) instead of shadcn's dark palette. */
 @custom-variant dark (&:is(.dark *));
 
 /* Theme tokens; Tailwind turns each into classes (e.g. --color-error gives text-error and border-error).
    Tokens that only shadcn components use point at our own colors, so each color is written once. */
 @theme {
-  /* The device's own system font, then common fallbacks; Tailwind uses it for all text. */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Plain, wide screen font for body text, then close fallbacks; Tailwind uses it for all text. */
+  --font-sans: Verdana, Tahoma, 'DejaVu Sans', sans-serif;
+  /* Road-sign style font for headings, labels, buttons and numbers; used as font-display. */
+  --font-display: 'Overpass', 'Trebuchet MS', sans-serif;
+  /* Same family with even-width digits for the forecast clock; used as font-mono. */
+  --font-mono: 'Overpass Mono', 'Courier New', monospace;
 
-  /* Main text color; used as text-foreground across the app. */
-  --color-foreground: #1f2328;
-  /* Secondary text (status line, trip summary, list messages); used as text-muted-foreground. */
-  --color-muted-foreground: #59636e;
-  /* Soft gray background (hover on small buttons); used as bg-muted. */
-  --color-muted: #f6f8fa;
-  /* Background of the page and floating panels; used as bg-surface. */
-  --color-surface: #ffffff;
-  /* Light gray behind the side panel's content, so the white cards and inputs stand out; used as bg-panel. */
-  --color-panel: #eef0f3;
-  /* Silver toolbar: gradient top, gradient bottom and the darker line under it; used by PanelToolbar. */
-  --color-toolbar-top: #f4f5f7;
-  --color-toolbar-bottom: #c9ced6;
-  --color-toolbar-edge: #9aa3ae;
-  /* Input borders; used as border-border in forms and the suggestion list. */
-  --color-border: #d1d9e0;
-  /* Main action color; used as bg-primary by the Plan route button. */
-  --color-primary: #0969da;
-  /* Button blue: gradient top, gradient bottom and darker edge; used in buttonStyles. */
-  --color-button-blue-top: #6a9de8;
-  --color-button-blue-bottom: #2d63c8;
-  --color-button-blue-edge: #234f9f;
-  /* Bottom of the light gray button gradient, white at the top; used as to-surface-sunken in buttonStyles. */
-  --color-surface-sunken: #e9edf1;
-  /* Error text and invalid input borders; used as text-error and border-error. */
-  --color-error: #d1242f;
-  /* Green text for good news ("Recommended"); used as text-success on route cards. */
-  --color-success: #1a7f37;
-  /* Green for the "Recommended" band: gradient top and bottom; used in RouteCard. */
-  --color-recommended-top: #7fc35d;
-  --color-recommended-bottom: #3d8c2a;
-  /* Soft green background behind success text; used as bg-success-soft on route cards. */
-  --color-success-soft: #dafbe1;
-  /* Icon colors on the route cards, so each fact is easy to spot; used as text-distance and text-arrival. */
-  --color-distance: #8250df;
-  --color-arrival: #1b7c83;
+  /* Near-black with a teal tint, the darkest color of the app: top bar, forecast band, map popup, and the dark text
+     on light risk colors (riskConfig) and on the main action button. */
+  --color-asphalt: #0a1a1e;
+  /* Main text color, an off-white; used as text-foreground across the app. */
+  --color-foreground: #e6eeea;
+  /* Secondary text (labels, notes, list messages); used as text-muted-foreground. */
+  --color-muted-foreground: #8db0b2;
+  /* Slightly lighter teal background (hover on rows and small buttons); used as bg-muted. */
+  --color-muted: #1b444b;
+  /* Dark teal background of the page, inputs and the selected route row; used as bg-surface. */
+  --color-surface: #0f2c32;
+  /* Teal behind the side panel's content, a step lighter than surface so inputs stand out; used as bg-panel. */
+  --color-panel: #14363d;
+  /* Teal lines: input borders, dividers between rows and sections; used as border-border. */
+  --color-border: #24525a;
+  /* Ice blue for the main action, focus rings, the selected tab and highlights; used as bg-primary and text-primary. */
+  --color-primary: #8fe0e6;
+  /* Strong teal of the navigation band and the play button; used as bg-band. */
+  --color-band: #127480;
+  /* Darker teal for hover on the band and for table headers; used as bg-band-dark. */
+  --color-band-dark: #0c5760;
+  /* Error text and invalid input borders, a light red that reads on dark teal; used as text-error and border-error. */
+  --color-error: #ff6b70;
   /* Highlighted suggestion row; used as bg-accent in PlaceSearchInput. */
-  --color-accent: #ddf4ff;
+  --color-accent: #1f4d55;
 
   /* shadcn names for our colors; used by components in src/components/ui. */
   --color-background: var(--color-surface);
-  --color-primary-foreground: var(--color-surface);
+  --color-primary-foreground: var(--color-asphalt);
   --color-popover: var(--color-surface);
   --color-popover-foreground: var(--color-foreground);
   --color-accent-foreground: var(--color-foreground);
@@ -63,33 +54,39 @@
   --color-ring: var(--color-primary);
   --color-destructive: var(--color-error);
 
-  /* Soft shadow for panels floating over the map; used as shadow-floating-panel by the side panel and the suggestion list. */
-  --shadow-floating-panel: 0 1px 4px rgba(0, 0, 0, 0.25);
-  /* Soft shadow that lifts map pins off the route line; used as drop-shadow-map-pin in RouteEndpointMarker. */
-  --drop-shadow-map-pin: 0 2px 3px rgba(0, 0, 0, 0.35);
+  /* Every rounded-* class (ours and shadcn's) draws square corners: the design is rectangular throughout.
+     rounded-full keeps working for the few round things (start dot, drawer handle). */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
 
-  /* Depth: raised buttons, pressed (sunken) buttons, carved inputs, lifted cards.
-     Used through buttonStyles, formStyles and RouteCard. */
-  /* Small shadow under a raised button or segmented control; used as shadow-raised. */
-  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.06);
-  /* Shadow under a route card; used as shadow-card. */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.06);
-  /* Bigger shadow under the selected route card, so it looks lifted; used as shadow-card-lifted. */
-  --shadow-card-lifted: 0 4px 10px rgba(9, 105, 218, 0.18), 0 10px 24px rgba(0, 0, 0, 0.1);
-  /* Thin light line along a button's top inside edge, like glass catching light; used as inset-shadow-highlight. */
-  --inset-shadow-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  /* Shadow inside a pressed button, so it looks pushed in; used as inset-shadow-pressed. */
-  --inset-shadow-pressed: inset 0 2px 3px rgba(0, 0, 0, 0.25);
-  /* Shadow inside the top of an input, so it looks carved into the panel; used as inset-shadow-carved. */
-  --inset-shadow-carved: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-  /* White line under dark text, so it looks pressed into the gray panel ("letterpress");
-     used as text-shadow-letterpress on field labels and the toolbar title. */
-  --text-shadow-letterpress: 0 1px 0 rgba(255, 255, 255, 0.8);
-  /* Faint dark line above white text on colored buttons ("embossed" text); used as text-shadow-embossed. */
-  --text-shadow-embossed: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  /* Depth: the map sits at the back, and everything the user works with casts a shadow onto it. */
+  /* Shadow under things floating over the map (map controls, popup, drawer, dialog, compact forecast,
+     suggestion list); used as shadow-floating-panel. */
+  --shadow-floating-panel: 0 6px 20px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  /* Shadow the side panel casts to its right, onto the map; used as shadow-side-panel in App. */
+  --shadow-side-panel: 8px 0 24px rgba(0, 0, 0, 0.5);
+  /* Shadow the forecast band casts upward, onto the map; used as shadow-forecast-band in ForecastSlider. */
+  --shadow-forecast-band: 0 -8px 24px rgba(0, 0, 0, 0.45);
+  /* Shadow the top bar casts downward, onto the panel and the map; used as shadow-top-bar in TopBar. */
+  --shadow-top-bar: 0 4px 16px rgba(0, 0, 0, 0.5);
+  /* Darkened map edges, so the map reads as sunk behind the panels; used as shadow-map-recess in MapView. */
+  --shadow-map-recess: inset 0 0 80px rgba(0, 0, 0, 0.45);
+  /* Soft shadow that lifts map markers off the route line; used as drop-shadow-map-pin by the map markers. */
+  --drop-shadow-map-pin: 0 2px 3px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
+  /* The whole app is dark, so native controls (date fields, scrollbars) are drawn dark too. */
+  html {
+    color-scheme: dark;
+  }
+
   /* Page-wide text and background colors. */
   body {
     color: var(--color-foreground);
@@ -102,25 +99,51 @@
   }
 }
 
-/* MapLibre draws the route popup itself, so plain CSS styles it to match the route cards. */
-.maplibregl-popup-content {
-  padding: 18px;
-  border-radius: 24px;
-  box-shadow: var(--shadow-card-lifted);
+/* MapLibre's own elements (popup frame, map credits). MapLibre's stylesheet loads after this one, so every rule
+   starts with .maplibregl-map to outrank its defaults. */
+
+/* The segment popup's frame: the panel's square, outlined look; SegmentDetails draws the content and its padding. */
+.maplibregl-map .maplibregl-popup-content {
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: var(--color-asphalt);
+  box-shadow: var(--shadow-floating-panel);
   font: inherit;
 }
 
-/* MapLibre's close "×" is tiny by default; bigger, rounder and easier to hit. */
-.maplibregl-popup-close-button {
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  font-size: 20px;
+/* The popup's small arrow takes the border color on whichever side MapLibre opened the popup. */
+.maplibregl-map .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--color-border);
+}
+
+.maplibregl-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--color-border);
+}
+
+.maplibregl-map .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--color-border);
+}
+
+.maplibregl-map .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--color-border);
+}
+
+/* Map credits: a see-through near-black strip with muted text, so they don't glare on the dark map. */
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--color-asphalt) 80%, transparent);
   color: var(--color-muted-foreground);
 }
 
-.maplibregl-popup-close-button:hover {
-  background: var(--color-muted);
+.maplibregl-map .maplibregl-ctrl-attrib a {
+  color: var(--color-muted-foreground);
+}
+
+/* The "i" button of the folded credits on narrow screens is a dark icon; inverted so it shows on the dark strip. */
+.maplibregl-map .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
 }

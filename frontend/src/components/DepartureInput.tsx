@@ -5,11 +5,8 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import {
-  SECONDARY_BUTTON_CLASS_NAME,
-  SEGMENTED_GROUP_CLASS_NAME,
-  SEGMENTED_OPTION_CLASS_NAME,
-} from '../config/buttonStyles'
+import { SEGMENTED_OPTION_CLASS_NAME } from '../config/buttonStyles'
+import { FORM_CONTROL_CLASS_NAME } from '../config/formStyles'
 import {
   areInSameMonth,
   getAvailableTime,
@@ -91,7 +88,7 @@ export function DepartureInput({ id, choice, isInvalid, onChoiceChange }: Depart
         spacing={0}
         value={[choice.mode]}
         onValueChange={handleModeChange}
-        className={SEGMENTED_GROUP_CLASS_NAME}
+        className="w-full"
       >
         <ToggleGroupItem value={DepartureMode.NOW} className={SEGMENTED_OPTION_CLASS_NAME}>
           Leave now
@@ -105,15 +102,15 @@ export function DepartureInput({ id, choice, isInvalid, onChoiceChange }: Depart
         <div className="flex gap-2">
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger
-              render={<Button variant="outline" aria-label="Departure day" className={`h-10 flex-1 justify-between px-3 text-base ${SECONDARY_BUTTON_CLASS_NAME}`} />}
+              render={<Button variant="outline" aria-label="Departure day" className={`h-10 flex-1 justify-between px-3 text-sm ${FORM_CONTROL_CLASS_NAME}`} />}
             >
               {selectedDayLabel}
               <CalendarIcon className="text-muted-foreground" />
             </PopoverTrigger>
             <PopoverContent align="start" className="w-auto p-0">
               <Calendar
-                // Bigger day cells and text than shadcn's default, to match the panel's 16 px text.
-                className="text-base [--cell-size:--spacing(9)]"
+                // Bigger day cells than shadcn's default, easier to hit.
+                className="text-sm [--cell-size:--spacing(9)]"
                 mode="single"
                 // The day can be changed but never cleared.
                 required
@@ -131,12 +128,12 @@ export function DepartureInput({ id, choice, isInvalid, onChoiceChange }: Depart
           </Popover>
 
           <Select items={times} value={choice.timeValue} onValueChange={handleTimeChange}>
-            <SelectTrigger aria-label="Departure time" aria-invalid={isInvalid} className={`flex-1 text-base data-[size=default]:h-10 ${SECONDARY_BUTTON_CLASS_NAME}`}>
+            <SelectTrigger aria-label="Departure time" aria-invalid={isInvalid} className={`flex-1 text-sm data-[size=default]:h-10 ${FORM_CONTROL_CLASS_NAME}`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {times.map((time) => (
-                <SelectItem key={time.value} value={time.value} className="text-base">
+                <SelectItem key={time.value} value={time.value} className="text-sm">
                   {time.label}
                 </SelectItem>
               ))}

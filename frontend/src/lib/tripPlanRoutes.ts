@@ -12,7 +12,7 @@ export function getRouteById(tripPlan: TripPlan, routeId: string): RoutePlan {
   return tripPlan.routes[0]
 }
 
-// Routes ordered by rank, recommended first; used by RouteCards.
+// Routes ordered by rank, recommended first; used by RouteList.
 export function getRoutesInRankOrder(routes: RoutePlan[]): RoutePlan[] {
   const routesInRankOrder: RoutePlan[] = []
 
@@ -24,7 +24,7 @@ export function getRoutesInRankOrder(routes: RoutePlan[]): RoutePlan[] {
   return routesInRankOrder
 }
 
-// What the user sees for a route: "Option 1" is the recommended one, then the next best; used by RouteCard and App.
+// What the user sees for a route: "Option 1" is the recommended one, then the next best; used by RouteRow and ForecastSlider.
 export function getRouteOptionName(route: RoutePlan): string {
   return `Option ${route.rank}`
 }
