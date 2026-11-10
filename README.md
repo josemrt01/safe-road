@@ -3,8 +3,6 @@
   <img alt="Safe Road" src="docs/images/brand/safe-road-logo-light.png" width="360">
 </picture>
 
-# Safe Road
-
 Strong wind, heavy rain and snow make driving a big truck dangerous, and the weather can change during a
 long trip. This web app helps a truck driver choose the safest of three routes between two US places.
 
