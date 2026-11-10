@@ -1,4 +1,4 @@
-# 🚚 Truck Route Weather
+# 🚚 Safe Road
 
 Strong wind, heavy rain and snow make driving a big truck dangerous, and the weather can change during a
 long trip. This web app helps a truck driver choose the safest of three routes between two US places.
@@ -6,7 +6,7 @@ long trip. This web app helps a truck driver choose the safest of three routes b
 For every route, it checks the weather forecast at the hour the truck will actually pass each point, rates
 how risky that is for the truck's load, and recommends the safest route with a one-line reason.
 
-🌐 **Live demo:** https://truck-route-weather.onrender.com
+🌐 **Live demo:** https://safe-road.onrender.com
 
 > ⏳ The demo runs on a free hosting plan that sleeps when nobody uses it. The first visit can take about a
 > minute to load; after that it runs at normal speed.

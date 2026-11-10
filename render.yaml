@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: truck-route-weather
+    name: safe-road
     runtime: python
     plan: free
     buildCommand: ./build.sh
