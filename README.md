@@ -1,4 +1,9 @@
-# 🚚 Safe Road
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/safe-road-logo-dark.png">
+  <img alt="Safe Road" src="docs/images/brand/safe-road-logo-light.png" width="360">
+</picture>
+
+# Safe Road
 
 Strong wind, heavy rain and snow make driving a big truck dangerous, and the weather can change during a
 long trip. This web app helps a truck driver choose the safest of three routes between two US places.
@@ -11,7 +16,7 @@ how risky that is for the truck's load, and recommends the safest route with a o
 > ⏳ The demo runs on a free hosting plan that sleeps when nobody uses it. The first visit can take about a
 > minute to load; after that it runs at normal speed.
 
-![Three routes from Denver to Salt Lake City colored by weather risk, with the recommended route first](docs/images/route_options.jpg)
+![Three routes from Salt Lake City to Sacramento: the recommended route first in the panel, each with its risk strip, and the forecast band under the map](docs/images/route_options.jpg)
 
 ## 🧭 How to use it
 
@@ -22,21 +27,28 @@ how risky that is for the truck's load, and recommends the safest route with a o
 5. Press **Plan route**. You get up to three routes; the recommended one comes first.
 6. Click a colored piece of a route to see why it is risky, when the truck passes there and the expected
    weather.
-7. Use the **weather forecast slider** (or press play) to watch how the weather around the routes changes
+7. Drag the **forecast band** under the map (or press play) to watch how the weather around the routes changes
    hour by hour over the next 48 hours.
+8. Open **How risk works** in the top bar for the risk rules, or **About** for a short guide.
 
-![Segment popup showing a Severe risk from wind gusts and a heavy load, with the pass time and weather](docs/images/segment_risk_popup.jpg)
+![Segment popup near Truckee showing a Severe risk from wind gusts and a heavy load, with the miles, pass time and wind](docs/images/segment_risk_popup.jpg)
 
 ## 🗺️ What the app shows
 
-- **A card per route** with the driving time, arrival time, distance, how many miles are risky, and the
-  worst risk level on it. The recommended route has a short reason, for example "Fewest Severe miles: 100.0
-  vs 125.0 on the next best route", meaning it spends 25 fewer miles in Severe weather than the next option.
+- **A row per route**, safest first, with the driving time, arrival time, distance and how many miles are
+  risky. The number on the left takes the color of the worst risk on the route. The recommended route has a
+  short reason, for example "Fewest Severe miles: 0.0 vs 50.0 on the next best route", and the other options
+  are dimmed so it stands out.
+- **A risk strip** under each route: the trip from start to end, colored by risk, so the dangerous part shows
+  at a glance.
 - **Routes colored by risk** on the map, from green (Low) to purple (No Travel).
 - **A detail popup** for each piece of the route: the risk level, its cause (wind, rain, snow or the load),
   the miles of the trip it covers, when the truck passes, and the wind, rain and snow there.
-- **A weather map** that shades the area around the routes by risk level, with a truck icon that moves
-  along the selected route as you move the slider.
+- **A weather map** that shades the area around the routes by risk level, with a truck that moves along the
+  selected route as you move through the hours.
+- **A forecast band** under the map: the 48 forecast hours, the hours the truck is on the road with the risk
+  where it is at each hour, and the time shown as a clock.
+- **Layer checkboxes** to hide or show the weather, the other routes and the checkpoints.
 - ⚠️ **A warning** when even the safest route crosses No Travel weather, suggesting to delay the trip.
 - **Works on phones**: on small screens the map fills the screen and the panel becomes a sheet you drag up
   from the bottom.
@@ -129,8 +141,8 @@ the backend. The routes show first; the heatmap is requested afterwards, so the 
 | Part | Choice |
 |---|---|
 | Backend | Python, Django 5.2, Django REST Framework, Gunicorn, WhiteNoise (no database) |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui on Base UI |
-| Map | MapLibre GL via `react-map-gl`, OpenFreeMap "liberty" style (OpenStreetMap data, no key) |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui on Base UI, Overpass fonts (Fontsource) |
+| Map | MapLibre GL via `react-map-gl`, OpenFreeMap "fiord" style recolored to the app's dark teal (OpenStreetMap data, no key) |
 | Routing and place search | GraphHopper Directions and Geocoding APIs (free plan) |
 | Weather | Open-Meteo hourly forecast (no key), fetched by the browser |
 | Tests | pytest (backend), Vitest (frontend) |
@@ -150,7 +162,7 @@ backend/
 frontend/
   src/
     api/             Calls to the backend and to Open-Meteo
-    components/      React components (map, panel, drawer, forecast slider, route cards)
+    components/      React components (map, panel, drawer, forecast band, route rows, dialogs)
     lib/             Plain functions and hooks (unit tested)
     config/          Map, layout and style settings
     types/           Shared types and named constants

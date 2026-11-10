@@ -1,11 +1,10 @@
 import { Drawer } from '@base-ui/react/drawer'
-import { useEffect, useState, type ElementType } from 'react'
+import { lazy, Suspense, useEffect, useState, type ElementType } from 'react'
 import { getBackendStatus } from './api/healthApi'
 import { getHeatmap } from './api/heatmapApi'
 import { DrawerSegmentDetails } from './components/DrawerSegmentDetails'
 import { ForecastSlider } from './components/ForecastSlider'
 import { InfoDialog } from './components/InfoDialog'
-import { MapView } from './components/MapView'
 import { PanelContent } from './components/PanelContent'
 import { TopBar } from './components/TopBar'
 import { TripDrawer } from './components/TripDrawer'
@@ -18,6 +17,10 @@ import type { InfoTopic } from './types/infoTopic'
 import { PanelView } from './types/panelView'
 import type { SegmentClick, SelectedSegment } from './types/selectedSegment'
 import type { RoutePlan, TripPlan, TripSettings } from './types/tripPlan'
+
+// The map and its library (MapLibre, about 1 MB) load in a file of their own, in parallel with the rest, so the panel
+// and the form show sooner on the first visit.
+const MapView = lazy(() => import('./components/MapView').then((module) => ({ default: module.MapView })))
 
 // The heatmap and the plan it belongs to; a heatmap for an older plan that answers late is ignored.
 type HeatmapResult = {
@@ -193,16 +196,25 @@ function App() {
           <div className="relative min-h-0 flex-1">
             {/* Pinned to the box's edges, so MapLibre gets an exact size that follows the window and the panel. */}
             <div className="absolute inset-0">
-              <MapView
-                tripPlan={tripPlan}
-                selectedRouteId={selectedRouteId}
-                heatmap={currentHeatmap?.heatmap ?? null}
-                forecastHour={forecastHour}
-                isTruckVisible={isTruckVisible}
-                selectedSegment={visibleSegment}
-                onSelectSegment={handleSelectSegment}
-                isPopupEnabled={isWideScreen}
-              />
+              {/* Until the map's file arrives, a dark area with a short note instead of a blank space. */}
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center bg-surface font-display text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">
+                    Loading map…
+                  </div>
+                }
+              >
+                <MapView
+                  tripPlan={tripPlan}
+                  selectedRouteId={selectedRouteId}
+                  heatmap={currentHeatmap?.heatmap ?? null}
+                  forecastHour={forecastHour}
+                  isTruckVisible={isTruckVisible}
+                  selectedSegment={visibleSegment}
+                  onSelectSegment={handleSelectSegment}
+                  isPopupEnabled={isWideScreen}
+                />
+              </Suspense>
             </div>
 
             {isWideScreen && (
